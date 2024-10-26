@@ -142,6 +142,7 @@ p {
 .monika-btn-square:hover{
     border:3px solid #222;
     background-color: #fff;
+    font-weight: bold;
 }
 .monika-btn-square:active{
     background-color: #222;
