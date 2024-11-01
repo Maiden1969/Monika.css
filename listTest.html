@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="/css/monika.css">
+    <script src="/js/monika.js" type="module"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div id="#list" class="monika-card-container">
+            <div id="item-div" class="monika-card">
+                <b id="item-b">@#list.title.title</b>
+                <span id="item-span" style="font-style: italic;">@text.text1</span>
+                <a id="item-a"  href= @#list.link.link target="_blank" class="monika-btn-arrow-right"></a>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import app from '/js/monika.js';
+        app.render("/data/listTest.json");
+    </script>
+
+</body>
+
+</html>

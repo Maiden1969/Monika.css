@@ -1,4 +1,5 @@
 const app = {
+    //从指定路径的JSON文件渲染页面数据
     render: (dataPath) => {
         // 读取 data.json 文件
         fetch(dataPath)
@@ -12,21 +13,21 @@ const app = {
     },
 
 
-    // 递归访问每个节点以及其子节点
     // 替换占位符，渲染列表
+    // 递归访问每个节点以及其子节点
     replacePlaceholders: (node, data) => {
         if (node.nodeType === Node.ELEMENT_NODE) {
             if (node.id[0] === '#') {
-                const container = document.getElementById(node.id);  //获得项目容器
-                console.log(container);
-                const item = container.firstElementChild;  //获得项目模版
-                container.removeChild(item); //删除模版
-                const clonedItem = item.cloneNode(true);
-                app.replacePlaceholdersForItem(clonedItem, data, "2");
-                container.appendChild(clonedItem);
+                // const container = document.getElementById(node.id);  //获得项目容器
+                // const item = container.firstElementChild;  //获得项目模版
+                // container.removeChild(item); //删除模版
+                // let pos = 1;
+                // while (pos <= 4) {
+                //     const clonedItem = item.cloneNode(true);
+                //     app.replacePlaceholdersForItem(clonedItem, data, `${pos}`);
+                //     pos++;
+                //     container.appendChild(clonedItem);
             }
-
-
             // 遍历所有属性
             for (let i = 0; i < node.attributes.length; i++) {
                 const attr = node.attributes[i];
@@ -68,16 +69,18 @@ const app = {
         function getNestedValue(obj, keyPath) {
             return keyPath.split('.').reduce((acc, key) => acc && acc[key], obj);
         }
+
+
+
     },
 
-
-    //为每个项目节点替换占位符
+    //为列表的每个项目节点替换占位符
     replacePlaceholdersForItem: (node, data, pos) => {
         if (node.nodeType === Node.ELEMENT_NODE) {
             // 遍历所有属性
             for (let i = 0; i < node.attributes.length; i++) {
                 const attr = node.attributes[i];
-                const regex = /@(#?\w+(?:\.#?\w+)*)/g;
+                const regex = /@(#\w+(?:\.#?\w+)*)/g;
                 let match_atr = '';
                 let res_atr = '';
                 let lastIndex_atr = 0;
@@ -95,7 +98,7 @@ const app = {
 
         //遍历所有文本节点
         if (node.nodeType === Node.TEXT_NODE) {
-            const regex = /@(#?\w+(?:\.#?\w+)*)/g;
+            const regex = /@(#\w+(?:\.#?\w+)*)/g;
             let match_text = '';
             let res_text = '';
             let lastIndex_text = 0;
@@ -110,7 +113,7 @@ const app = {
         }
         // 递归遍历子节点
         for (let child of node.childNodes) {
-            app.replacePlaceholdersForItem(child, data,pos);
+            app.replacePlaceholdersForItem(child, data, pos);
         }
 
     },
