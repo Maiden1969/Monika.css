@@ -4,22 +4,19 @@
             "title1": "title1",
             "title2": "title2",
             "title3": "title3",
-            "title4": "title4",
-            "title5": "title5"
+            "title4": "title4"
         },
         "summary": {
             "summary1": "sum1",
             "summary2": "sum2",
             "summary3": "sum3",
-            "summary4": "sum4",
-            "summary5": "sum5"
+            "summary4": "sum4"
         },
         "link": {
             "link1": "link1",
             "link2": "link2",
             "link3": "link3",
-            "link4": "link4",
-            "link5": "link5"
+            "link4": "link4"
         }
     },
     "text": {

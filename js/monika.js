@@ -167,7 +167,7 @@ const monika = {
             //更新data中对应的数据
             setNestedValue(data, keys, event.target.value);
             //再次渲染页面,更新其它组件的value值
-            monika.updateValue(document.body, event.target.value, event.target.getAttribute('m-value'));
+            monika.updatePage(document.body, event.target.value, event.target.getAttribute('m-value'));
         }
     },
 
@@ -226,23 +226,26 @@ const monika = {
         return 1;
     },
 
-    //更新页面，只替换特定的value值(绑定了m-value并且属性值keyPath给定)
-    updateValue: (node, newValue, keyPath) => {
+    //更新页面，只替换特定的占位符(路径keyPath相同)
+    updatePage: (node, newValue, keyPath) => {
+        //更新属性值
         if (node.nodeType === Node.ELEMENT_NODE) {
-            // 遍历所有属性
             for (let i = 0; i < node.attributes.length; i++) {
                 const attr = node.attributes[i];
-
-                if (attr.name === monika.order[1] && attr.value === keyPath) {
+                if (attr.value === keyPath && attr.name === monika.order[1]) {
                     node.value = newValue;
+                }
+
+                if (attr.value === keyPath && attr.name === monika.order[0]) {
+                    node.textContent = newValue;
                 }
             }
         }
 
         // 递归遍历子节点
         for (let child of node.childNodes) {
-            monika.updateValue(child, newValue, keyPath);
-        } 
+            monika.updatePage(child, newValue, keyPath);
+        }
     },
 
 
