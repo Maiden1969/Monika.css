@@ -2,6 +2,8 @@ const monika = {
     //指令集
     order: ["m-content", "m-value"],
 
+    data : {},
+
     //从指定路径的JSON文件渲染页面数据
     renderData: (dataPath) => {
         // 读取 data.json 文件
@@ -40,8 +42,8 @@ const monika = {
                 dataPath = "/data/" + fileName.replace(/\.html$/, '.json');
             }
             document.body.style.visibility = 'hidden';
-            console.log(dataPath);
             const data = await monika.renderData(dataPath);
+            monika.data = data;
             document.body.style.visibility = 'visible';
             console.log("Render successful!");
             return data;
@@ -177,9 +179,10 @@ const monika = {
 
         //监听input事件的回调函数
         function handleInput(event) {
-            const keys = event.target.getAttribute('m-value').split('.');
+            const keys = event.target.getAttribute('m-value').slice(1).split('.');
             //更新data中对应的数据
             setNestedValue(data, keys, event.target.value);
+            monika.data = data;
             //再次渲染页面,更新其它组件的value值
             monika.updatePage(document.body, event.target.value, event.target.getAttribute('m-value'));
         }
@@ -274,6 +277,7 @@ const monika = {
     },
 
     //根据monika的语法@key1.key2.key3...获取数据
+    //keyPath也可以省略开头的@
     $value: (data, keyPath) => {
         if (keyPath[0] === '@')
             keyPath = keyPath.slice(1);
