@@ -27,11 +27,20 @@ const monika = {
         }
     },
 
-    //从指定的JSON文件路径渲染页面数据
+    //从指定的JSON文件路径渲染页面数据，或者根据规则自动寻找/data/filename.json
     //renderData渲染结束后才显示页面
-    render: async (dataPath) => {
+    render: async (dataPath = 'default.json') => {
         try {
+            if (dataPath === 'default.json') {
+                //获得当前页面的url
+                const url = new URL(window.location.href);
+                //获得.html后缀的文件名
+                const fileName = url.pathname.split('/').pop();
+                //改为.json后缀
+                dataPath = "/data/" + fileName.replace(/\.html$/, '.json');
+            }
             document.body.style.visibility = 'hidden';
+            console.log(dataPath);
             const data = await monika.renderData(dataPath);
             document.body.style.visibility = 'visible';
             console.log("Render successful!");
@@ -44,6 +53,7 @@ const monika = {
     // 替换占位符，渲染列表
     // 递归访问每个节点以及其子节点
     replacePlaceholders: (node, data) => {
+        //处理元素节点
         if (node.nodeType === Node.ELEMENT_NODE) {
             //渲染列表
             if (node.id[0] === '#') {
@@ -79,7 +89,9 @@ const monika = {
 
                     }
                     res_order += attr.value.slice(lastIndex_order);
-                    node.textContent += res_order;
+
+                    if (node.textContent !== res_order)
+                        node.textContent = res_order;
 
                     continue;
                 }
@@ -107,6 +119,7 @@ const monika = {
                     continue;
                 }
 
+                //处理其它一般属性
                 const regex = /@(#?\w+(?:\.#?\w+)*)/g;
                 let match_atr = '';
                 let res_atr = '';
@@ -123,6 +136,7 @@ const monika = {
             }
         }
 
+        //处理文本节点
         if (node.nodeType === Node.TEXT_NODE) {
             const regex = /@(#?\w+(?:\.#?\w+)*)/g;
             let match_text = '';
@@ -258,6 +272,13 @@ const monika = {
     $$: (selector) => {
         return document.querySelectorAll(selector);
     },
+
+    //根据monika的语法@key1.key2.key3...获取数据
+    $value: (data, keyPath) => {
+        if (keyPath[0] === '@')
+            keyPath = keyPath.slice(1);
+        return keyPath.split('.').reduce((acc, key) => acc && acc[key], data);
+    }
 };
 
 export default monika;

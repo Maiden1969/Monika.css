@@ -12,20 +12,21 @@
     <div id="#list" class="monika-card-container">
         <div class="monika-card">
             <b>@#list.title.title</b>
-            <span style="font-style: italic;">@#list.summary.summary </span>
+            <span style="font-style: italic;" m-content="@input">@#list.summary.summary </span>
             <a href=@#list.link.link target="_blank" class="monika-btn-arrow-right"></a>
         </div>
     </div>
 
     <input id='input' m-value="@input" type="text" class="monika-input">
     <input id='input2' m-value="@input" type="text" class="monika-input">
+    <div style="display: flex; flex-direction: row;">
+        <b>这里是</b><b id="test" m-content="@input"></b>
+    </div>
 
-    <div id="test" m-content="@input"></div>
 
     <script type="module">
         import monika from '/js/monika.js';
-        const $ = monika.$;
-        const data = await monika.render("/data/listTest.json");
+        const data = await monika.render();
     </script>
 
 </body>
