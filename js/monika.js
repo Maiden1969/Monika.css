@@ -1,21 +1,51 @@
 const monika = {
+    //指令集
+    order: ["m-content", "m-value"],
+
     //从指定路径的JSON文件渲染页面数据
-    render: (dataPath) => {
+    renderData: (dataPath) => {
         // 读取 data.json 文件
-        fetch(dataPath)
+        return fetch(dataPath)
             .then(response => response.json())
             .then(data => {
                 const my_app = document.body;
                 monika.replacePlaceholders(my_app, data);
+                return data;
             })
             .catch(error => console.error('Error fetching data:', error));
 
+    },
+
+    //从指定的JSON文件渲染页面数据
+    renderByData: async (data) => {
+        try {
+            const my_app = document.body;
+            monika.replacePlaceholders(my_app, data);
+            return data;
+        } catch (error) {
+            console.error('Error rendering data:', error);
+        }
+    },
+
+    //从指定的JSON文件路径渲染页面数据
+    //renderData渲染结束后才显示页面
+    render: async (dataPath) => {
+        try {
+            document.body.style.visibility = 'hidden';
+            const data = await monika.renderData(dataPath);
+            document.body.style.visibility = 'visible';
+            console.log("Render successful!");
+            return data;
+        } catch (error) {
+            console.error('Error rendering data:', error);
+        }
     },
 
     // 替换占位符，渲染列表
     // 递归访问每个节点以及其子节点
     replacePlaceholders: (node, data) => {
         if (node.nodeType === Node.ELEMENT_NODE) {
+            //渲染列表
             if (node.id[0] === '#') {
                 const container = document.getElementById(node.id);  //获得项目容器
                 const item = container.firstElementChild;  //获得项目模版
@@ -35,6 +65,48 @@ const monika = {
             // 遍历所有属性
             for (let i = 0; i < node.attributes.length; i++) {
                 const attr = node.attributes[i];
+                //处理指令m-content
+                if (attr.name === monika.order[0]) {
+                    const regex = /@(#?\w+(?:\.#?\w+)*)/g;
+                    let match_order = '';
+                    let res_order = '';
+                    let lastIndex_order = 0;
+                    while ((match_order = regex.exec(attr.value)) !== null) {
+                        const value = getNestedValue(data, match_order[1]);
+                        res_order += attr.value.slice(lastIndex_order, match_order.index);
+                        res_order += value;
+                        lastIndex_order = match_order.index + match_order[0].length;
+
+                    }
+                    res_order += attr.value.slice(lastIndex_order);
+                    node.textContent += res_order;
+
+                    continue;
+                }
+
+                //处理指令m-value
+                if (attr.name === monika.order[1]) {
+
+                    const regex = /@(#?\w+(?:\.#?\w+)*)/g;
+                    let match_order = '';
+                    let res_order = '';
+                    let lastIndex_order = 0;
+                    while ((match_order = regex.exec(attr.value)) !== null) {
+                        const value = getNestedValue(data, match_order[1]);
+                        res_order += attr.value.slice(lastIndex_order, match_order.index);
+                        res_order += value;
+                        lastIndex_order = match_order.index + match_order[0].length;
+
+                    }
+                    res_order += attr.value.slice(lastIndex_order);
+                    if (node.value !== res_order)
+                        node.value = res_order;
+
+                    //为该节点添加监视器,value改变时立刻根据m-value的地址更新data的值,然后再次渲染页面,实现数据同步
+                    node.addEventListener('input', handleInput);
+                    continue;
+                }
+
                 const regex = /@(#?\w+(?:\.#?\w+)*)/g;
                 let match_atr = '';
                 let res_atr = '';
@@ -70,8 +142,32 @@ const monika = {
             monika.replacePlaceholders(child, data);
         }
 
+        //获取嵌套key值
         function getNestedValue(obj, keyPath) {
             return keyPath.split('.').reduce((acc, key) => acc && acc[key], obj);
+        }
+
+        //设置嵌套key值
+        function setNestedValue(obj, keys, value) {
+            if (keys.length === 1) {
+                obj[keys[0]] = value;
+                return;
+            }
+
+            const [firstKey, ...remainingKeys] = keys;
+            if (!obj[firstKey]) {
+                obj[firstKey] = {};
+            }
+            setNestedValue(obj[firstKey], remainingKeys, value);
+        }
+
+        //监听input事件的回调函数
+        function handleInput(event) {
+            const keys = event.target.getAttribute('m-value').split('.');
+            //更新data中对应的数据
+            setNestedValue(data, keys, event.target.value);
+            //再次渲染页面,更新其它组件的value值
+            monika.updateValue(document.body, event.target.value, event.target.getAttribute('m-value'));
         }
     },
 
@@ -88,7 +184,7 @@ const monika = {
                 let res_atr = '';
                 let lastIndex_atr = 0;
                 while ((match_atr = regex.exec(attr.value)) !== null) {
-                    const value = getNestedValue(data,match_atr[1] + pos);
+                    const value = getNestedValue(data, match_atr[1] + pos);
                     if (typeof value === 'undefined') return 0;
                     res_atr += attr.value.slice(lastIndex_atr, match_atr.index);
                     res_atr += value;
@@ -130,13 +226,33 @@ const monika = {
         return 1;
     },
 
+    //更新页面，只替换特定的value值(绑定了m-value并且属性值keyPath给定)
+    updateValue: (node, newValue, keyPath) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            // 遍历所有属性
+            for (let i = 0; i < node.attributes.length; i++) {
+                const attr = node.attributes[i];
+
+                if (attr.name === monika.order[1] && attr.value === keyPath) {
+                    node.value = newValue;
+                }
+            }
+        }
+
+        // 递归遍历子节点
+        for (let child of node.childNodes) {
+            monika.updateValue(child, newValue, keyPath);
+        } 
+    },
+
+
     //简化的ID选择器
-    $ :(id) => {
+    $: (id) => {
         return document.getElementById(id);
     },
 
     //简化的标签、类选择器
-    $$ :(selector) => {
+    $$: (selector) => {
         return document.querySelectorAll(selector);
     },
 };

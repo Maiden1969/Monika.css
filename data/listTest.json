@@ -26,6 +26,7 @@
         "text1": "text1"
     },
     "single" :"This is an single text",
+    "input":"default",
     "color": {
         "red": "red"
     }
