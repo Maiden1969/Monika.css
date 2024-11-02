@@ -77,6 +77,8 @@ const monika = {
 
     //为列表的每个项目节点替换占位符
     replacePlaceholdersForItem: (node, data, pos) => {
+
+        //遍历所有标签结点
         if (node.nodeType === Node.ELEMENT_NODE) {
             // 遍历所有属性
             for (let i = 0; i < node.attributes.length; i++) {
