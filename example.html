@@ -22,15 +22,14 @@
     <div style="display: flex; flex-direction: row;">
         <b>这里是</b><b id="test" m-content="@input"></b>
     </div>
+    <div m-content = "@single"></div>
 
 
     <script type="module">
         import monika from '/js/monika.js';
         await monika.render();  //渲染页面
-        const data = monika.data;  //获得动态数据
-        const $value = monika.$value; 
-        const $ = monika.$;
-        const $$ = monika.$$;
+        const {data,$,$$,$get,$set} = monika;  //解构赋值
+        $set('@single','Hello Monika.js!');
     </script>
 
 </body>

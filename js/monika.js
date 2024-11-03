@@ -2,21 +2,7 @@ const monika = {
     //指令集
     order: ["m-content", "m-value"],
 
-    data : {},
-
-    //从指定路径的JSON文件渲染页面数据
-    renderData: (dataPath) => {
-        // 读取 data.json 文件
-        return fetch(dataPath)
-            .then(response => response.json())
-            .then(data => {
-                const my_app = document.body;
-                monika.replacePlaceholders(my_app, data);
-                return data;
-            })
-            .catch(error => console.error('Error fetching data:', error));
-
-    },
+    data: {},
 
     //从指定的JSON文件渲染页面数据
     renderByData: async (data) => {
@@ -30,7 +16,8 @@ const monika = {
     },
 
     //从指定的JSON文件路径渲染页面数据，或者根据规则自动寻找/data/filename.json
-    //renderData渲染结束后才显示页面
+    //给monika.data注入原始值
+    //渲染结束后才显示页面
     render: async (dataPath = 'default.json') => {
         try {
             if (dataPath === 'default.json') {
@@ -41,12 +28,19 @@ const monika = {
                 //改为.json后缀
                 dataPath = "/data/" + fileName.replace(/\.html$/, '.json');
             }
+            //渲染未完成时，页面不显示
             document.body.style.visibility = 'hidden';
-            const data = await monika.renderData(dataPath);
-            monika.data = data;
-            document.body.style.visibility = 'visible';
-            console.log("Render successful!");
-            return data;
+
+          await fetch(dataPath)
+                .then(response => response.json())
+                .then(data => {
+                    const my_app = document.body;
+                    monika.data = data;
+                    monika.traverse(my_app, data);
+                    document.body.style.visibility = 'visible';
+                    return data;
+                })
+                .catch(error => console.error('Error fetching data:', error));
         } catch (error) {
             console.error('Error rendering data:', error);
         }
@@ -54,7 +48,8 @@ const monika = {
 
     // 替换占位符，渲染列表
     // 递归访问每个节点以及其子节点
-    replacePlaceholders: (node, data) => {
+    traverse: (node) => {
+        const data = monika.data;
         //处理元素节点
         if (node.nodeType === Node.ELEMENT_NODE) {
             //渲染列表
@@ -65,7 +60,7 @@ const monika = {
                 let pos = 1;
                 while (1) {
                     const clonedItem = item.cloneNode(true);
-                    const flag = monika.replacePlaceholdersForItem(clonedItem, data, pos);
+                    const flag = monika.traverseList(clonedItem, pos);
                     if (flag) {
                         container.appendChild(clonedItem);
                         pos++;
@@ -84,7 +79,7 @@ const monika = {
                     let res_order = '';
                     let lastIndex_order = 0;
                     while ((match_order = regex.exec(attr.value)) !== null) {
-                        const value = getNestedValue(data, match_order[1]);
+                        const value = monika.$get(match_order[1]);
                         res_order += attr.value.slice(lastIndex_order, match_order.index);
                         res_order += value;
                         lastIndex_order = match_order.index + match_order[0].length;
@@ -106,7 +101,7 @@ const monika = {
                     let res_order = '';
                     let lastIndex_order = 0;
                     while ((match_order = regex.exec(attr.value)) !== null) {
-                        const value = getNestedValue(data, match_order[1]);
+                        const value = monika.$get(match_order[1]);
                         res_order += attr.value.slice(lastIndex_order, match_order.index);
                         res_order += value;
                         lastIndex_order = match_order.index + match_order[0].length;
@@ -127,7 +122,7 @@ const monika = {
                 let res_atr = '';
                 let lastIndex_atr = 0;
                 while ((match_atr = regex.exec(attr.value)) !== null) {
-                    const value = getNestedValue(data, match_atr[1]);
+                    const value = monika.$get(match_atr[1]);
                     res_atr += attr.value.slice(lastIndex_atr, match_atr.index);
                     res_atr += value;
                     lastIndex_atr = match_atr.index + match_atr[0].length;
@@ -145,7 +140,7 @@ const monika = {
             let res_text = '';
             let lastIndex_text = 0;
             while ((match_text = regex.exec(node.textContent)) !== null) {
-                const value = getNestedValue(data, match_text[1]);
+                const value = monika.$get(match_text[1]);
                 res_text += node.textContent.slice(lastIndex_text, match_text.index);
                 res_text += value;
                 lastIndex_text = match_text.index + match_text[0].length;
@@ -155,33 +150,14 @@ const monika = {
         }
         // 递归遍历子节点
         for (let child of node.childNodes) {
-            monika.replacePlaceholders(child, data);
-        }
-
-        //获取嵌套key值
-        function getNestedValue(obj, keyPath) {
-            return keyPath.split('.').reduce((acc, key) => acc && acc[key], obj);
-        }
-
-        //设置嵌套key值
-        function setNestedValue(obj, keys, value) {
-            if (keys.length === 1) {
-                obj[keys[0]] = value;
-                return;
-            }
-
-            const [firstKey, ...remainingKeys] = keys;
-            if (!obj[firstKey]) {
-                obj[firstKey] = {};
-            }
-            setNestedValue(obj[firstKey], remainingKeys, value);
+            monika.traverse(child);
         }
 
         //监听input事件的回调函数
         function handleInput(event) {
-            const keys = event.target.getAttribute('m-value').slice(1).split('.');
+            const keyPath = event.target.getAttribute('m-value');
             //更新data中对应的数据
-            setNestedValue(data, keys, event.target.value);
+            monika.$set(keyPath, event.target.value);
             monika.data = data;
             //再次渲染页面,更新其它组件的value值
             monika.updatePage(document.body, event.target.value, event.target.getAttribute('m-value'));
@@ -189,7 +165,8 @@ const monika = {
     },
 
     //为列表的每个项目节点替换占位符
-    replacePlaceholdersForItem: (node, data, pos) => {
+    traverseList: (node,pos) => {
+        const data = monika.data;
 
         //遍历所有标签结点
         if (node.nodeType === Node.ELEMENT_NODE) {
@@ -201,7 +178,7 @@ const monika = {
                 let res_atr = '';
                 let lastIndex_atr = 0;
                 while ((match_atr = regex.exec(attr.value)) !== null) {
-                    const value = getNestedValue(data, match_atr[1] + pos);
+                    const value = monika.$get(match_atr[1] + pos);
                     if (typeof value === 'undefined') return 0;
                     res_atr += attr.value.slice(lastIndex_atr, match_atr.index);
                     res_atr += value;
@@ -220,7 +197,7 @@ const monika = {
             let res_text = '';
             let lastIndex_text = 0;
             while ((match_text = regex.exec(node.textContent)) !== null) {
-                const value = getNestedValue(data, match_text[1] + pos);
+                const value = monika.$get(match_text[1] + pos);
                 if (typeof value === 'undefined') return 0;
                 res_text += node.textContent.slice(lastIndex_text, match_text.index);
                 res_text += value;
@@ -231,13 +208,9 @@ const monika = {
         }
         // 递归遍历子节点
         for (let child of node.childNodes) {
-            const flag = monika.replacePlaceholdersForItem(child, data, pos);
+            const flag = monika.traverseList(child,pos);
             if (flag == 0)
                 return 0;
-        }
-
-        function getNestedValue(obj, keyPath) {
-            return keyPath.split('.').reduce((acc, key) => acc && acc[key], obj);
         }
 
         return 1;
@@ -278,12 +251,29 @@ const monika = {
 
     //根据monika的语法@key1.key2.key3...获取数据
     //keyPath也可以省略开头的@
-    $value: (data, keyPath) => {
-        if (keyPath[0] === '@')
-            keyPath = keyPath.slice(1);
-        return keyPath.split('.').reduce((acc, key) => acc && acc[key], data);
+    //不能通过修改该函数的返回值来修改monika.data
+    $get: (keyPath) => {
+        if (keyPath[0] === '@') keyPath = keyPath.slice(1);
+        return keyPath.split('.').reduce((acc, key) => acc && acc[key], monika.data);
+    },
+
+    //根据monika的语法@key1.key2.key3...设置数据，并且实时更新页面
+    //keyPath也可以省略开头的@
+    //修改monika.data
+    $set: (keyPath, value, data = monika.data) => {
+        if (keyPath[0] === '@') keyPath = keyPath.slice(1);
+        const keys = keyPath.split('.');
+        if (keys.length === 1) {
+            data[keys[0]] = value;
+            if (keyPath[0] !== '@') keyPath = '@' + keyPath;
+            monika.updatePage(document.body, value, keyPath);
+            return;
+        }
+        const [firstKey, ...remainingKeys] = keys;
+        if (!data[firstKey]) data[firstKey] = '';
+        monika.$set(remainingKeys.join('.'), value, data[firstKey]);
     }
-};
+}
 
 export default monika;
 
