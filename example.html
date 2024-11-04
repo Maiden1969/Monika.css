@@ -12,9 +12,9 @@
     <div id="#list" class="monika-card-container">
         <div class="monika-card">
             <b>@#list.title.title</b>
-            <span style="font-style: italic;" m-content="@input">@#list.summary.summary</span>
+            <span style="font-style: italic;" m-content="@#list.summary.summary"></span>
             <a href=@#list.link.link target="_blank" class="monika-btn-arrow-right"></a>
-        </div>
+        </div> 
     </div>
 
     <input id='input' m-value="@input" type="text" class="monika-input">
@@ -22,14 +22,15 @@
     <div style="display: flex; flex-direction: row;">
         <b>这里是</b><b id="test" m-content="@input"></b>
     </div>
-    <div m-content = "@single"></div>
+    <div m-content = "@text.text1" class="monika-highlight"></div>
+    <div class="monika-dir"></div>
 
 </body>
 
 <script type="module">
     import monika from '/js/monika.js';
     await monika.render();  //渲染页面
-    const {data,$,$$,$get,$set} = monika;  //解构赋值
+    const {data,$,$$,$get,$set,updatePage} = monika;  //解构赋值
 </script>
 
 </html>

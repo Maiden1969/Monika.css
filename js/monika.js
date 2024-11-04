@@ -27,13 +27,14 @@
 
 // 以下为核心库函数介绍
 /**
- * 1. render([dataPath])
+ * 1. render(dataPath)
  * 渲染页面函数，可选参数dataPath代表数据源文件的路径，默认值为 /data/当前页面名.json
  */
 
 /**
- * 2. traverse(node)
+ * 2. traverse(node, renderList = true)
  * 遍历节点 node 以及其所有字节点，替换占位符的内容
+ * 当可选参数renderList = true, 会渲染列表；反之则不渲染
  * (如果遇到指令m-content、m-value，则替换对应的textContent和value的值)
  * 使用的数据源为monika.data
  */
@@ -113,7 +114,7 @@
  * 这个函数只会更新monika指令绑定的数据，例如m-content、m-value
  * 如果参数node传入的是document.body，则相当于更新整个页面
  * 参数keyPath为想要更新的数据的路径，例如 @data.key1.key2.key3 ，其中的 @ 可以省略
- * 还会同步更新monika.data中的数据
+ * 注意: 不会同步更新monika.data中的数据，所以不建议单独使用
  * 建议使用更强大的 $set(keyPath, newValue)
  */
 
@@ -177,13 +178,13 @@ const monika = {
             //渲染未完成时，页面不显示
             document.body.style.visibility = 'hidden';
 
-          await fetch(dataPath)
+            await fetch(dataPath)
                 .then(response => response.json())
                 .then(data => {
                     const my_app = document.body;
                     monika.data = data;
                     monika.traverse(my_app, data);
-                    document.body.style.visibility = 'visible';
+                    document.body.style.visibility = 'visible'; //渲染完成时显示页面
                     return data;
                 })
                 .catch(error => console.error('Error fetching data:', error));
@@ -307,12 +308,12 @@ const monika = {
             monika.data = data;
             //再次渲染页面,更新其它组件的value值
             // monika.updatePage(document.body, event.target.value, event.target.getAttribute('m-value'));
-            monika.$set( event.target.getAttribute('m-value'),event.target.value);
+            monika.$set(event.target.getAttribute('m-value'), event.target.value);
         }
     },
 
     //为列表的每个项目节点替换占位符
-    traverseList: (node,pos) => {
+    traverseList: (node, pos) => {
         const data = monika.data;
 
         //遍历所有标签结点
@@ -320,6 +321,54 @@ const monika = {
             // 遍历所有属性
             for (let i = 0; i < node.attributes.length; i++) {
                 const attr = node.attributes[i];
+                //处理指令m-content
+                if (attr.name === monika.order[0]) {
+                    const regex = /@(#?\w+(?:\.#?\w+)*)/g;
+                    let match_order = '';
+                    let res_order = '';
+                    let lastIndex_order = 0;
+                    while ((match_order = regex.exec(attr.value)) !== null) {
+                        const value = monika.$get(match_order[1] + pos);
+                        res_order += attr.value.slice(lastIndex_order, match_order.index);
+                        res_order += value;
+                        lastIndex_order = match_order.index + match_order[0].length;
+
+                    }
+                    res_order += attr.value.slice(lastIndex_order);
+
+
+                    if (node.textContent !== res_order)
+                        node.textContent = res_order;
+                    node.attributes[i].value += pos;
+
+                    continue;
+                }
+
+                //处理指令m-value
+                if (attr.name === monika.order[1]) {
+
+                    const regex = /@(#?\w+(?:\.#?\w+)*)/g;
+                    let match_order = '';
+                    let res_order = '';
+                    let lastIndex_order = 0;
+                    while ((match_order = regex.exec(attr.value)) !== null) {
+                        const value = monika.$get(match_order[1] + pos);
+                        res_order += attr.value.slice(lastIndex_order, match_order.index);
+                        res_order += value;
+                        lastIndex_order = match_order.index + match_order[0].length;
+
+                    }
+                    res_order += attr.value.slice(lastIndex_order);
+                    if (node.value !== res_order)
+                        node.value = res_order;
+
+                    //为该节点添加监视器,value改变时立刻根据m-value的地址更新data的值,然后再次渲染页面,实现数据同步
+                    node.addEventListener('input', handleInput);
+
+                    node.attributes[i].value += pos;
+                    continue;
+                }
+
                 const regex = /@(#\w+(?:\.#?\w+)*)/g;
                 let match_atr = '';
                 let res_atr = '';
@@ -355,7 +404,7 @@ const monika = {
         }
         // 递归遍历子节点
         for (let child of node.childNodes) {
-            const flag = monika.traverseList(child,pos);
+            const flag = monika.traverseList(child, pos);
             if (flag == 0)
                 return 0;
         }
@@ -407,18 +456,20 @@ const monika = {
     //根据monika的语法keyPath = @key1.key2.key3...设置数据，并且实时更新页面
     //keyPath也可以省略开头的@
     //修改monika.data
-    $set: (keyPath, value, data = monika.data) => {
-        if (keyPath[0] === '@') keyPath = keyPath.slice(1);
+    $set: (keyPath, value, data = monika.data, isFirstCall = true) => {
+        if (isFirstCall) {
+            if (keyPath[0] !== '@') keyPath = '@' + keyPath;
+            monika.updatePage(document.body, value, keyPath);  //更新页面
+            keyPath = keyPath.slice(1);   //删除第一个 '@'
+        }
         const keys = keyPath.split('.');
         if (keys.length === 1) {
             data[keys[0]] = value;
-            if (keyPath[0] !== '@') keyPath = '@' + keyPath;
-            monika.updatePage(document.body, value, keyPath);
             return;
         }
         const [firstKey, ...remainingKeys] = keys;
         if (!data[firstKey]) data[firstKey] = '';
-        monika.$set(remainingKeys.join('.'), value, data[firstKey]);
+        monika.$set(remainingKeys.join('.'), value, data[firstKey], false);
     }
 };
 

@@ -371,10 +371,31 @@ input[type=checkbox]:checked~.monika-btn-toggle::before {
 
 /* --------------- */
 
-/* 模态框  */
+/* 强调  */
+.monika-highlight {
+    background-color: #222;
+    color: #fff;
+}
 
+/* ----------- */
 
+/* 侧边目录栏 */
+.monika-dir {
+    background-color: #444;
+    width: 10%;
+    height: 100%;
+    position: fixed;
+    top:0;
+    left:0;
+    transition: all ease .5s;
+}
 
+.monika-dir:hover {
+    transform:scaleX(3);
+    background-color: #000;
+}
+
+/* -------------- */
 
 /* ------------------ */
 
@@ -772,22 +793,3 @@ input[type=checkbox]:checked~.monika-btn-toggle::before {
 }
 
 /* ----------------- */
-
-/* 以下为测试： */
-.monika-container {
-    display: flex;
-    padding: 0;
-    margin: 0;
-    width:500px;
-    height:500px;
-    border-radius: 0;
-    background-color: #fff;
-    flex-direction: row;
-    justify-content:space-between;
-    align-items:start;
-    flex-wrap: wrap;
-    overflow: hidden;
-    align-content: flex-start;
-}
-
-/*-------------*/
