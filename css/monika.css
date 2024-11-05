@@ -141,6 +141,8 @@ p {
     animation: monika-anim-shadow-pop-br-reverse 0.3s cubic-bezier(0.470, 0.000, 0.745, 0.715) reverse both;
 }
 
+
+
 /* 占位符样式 */
 ::placeholder{
     color:#222;
@@ -396,6 +398,106 @@ input[type=checkbox]:checked~.monika-btn-toggle::before {
 }
 
 /* -------------- */
+
+/* css练习 */
+.monika-hover {
+    background-color: inherit;
+    color: #222;
+    font-size:0.2rem;
+    font-family: inherit;
+    font-weight: bold;
+    border:3px solid #222;
+    padding: 0.15rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.monika-hover:before {
+    content:'hello';
+    color: #222;
+    font-size:0.1rem;
+    position: absolute;
+    background-color: #fff;
+    width: 100%;
+    height: 100%;
+    top:0;
+    left:0;
+    transform:translate(-100%);
+    transition: all 0.3s;
+    mix-blend-mode: difference;
+}
+
+/* 未完成 */
+.monika-input2 input[type=text] {
+    background: linear-gradient(to right,#222 #000) no-repeat left;
+    /* mix-blend-mode: difference; */
+    background-size: 0% 20px;
+    transition: all 1s;
+}
+
+.monika-input2:hover{
+   background-size: 100% 20px;
+}
+
+.monika-underline span{
+    font-family: inherit;
+    font-weight: bold;
+    background: linear-gradient(to left, #222, #000) no-repeat right bottom;
+    background-size: 0% 3px;
+    transition: background-size 1s;
+}
+
+.monika-underline :hover{
+    background: linear-gradient(to right,#222,#000) no-repeat left bottom;
+    background-size: 100% 3px;
+}
+
+
+
+.monika-hover:hover:before {
+    transform:translate(0);
+}
+
+.monika-square {
+    position: relative;
+    width:0.5rem;
+    height: 0.5rem;
+    border:2px solid #222;
+    transition: all 0.4s;
+}
+
+.monika-square:before {
+    content: '';
+    position: absolute;
+    width: 0.52rem;
+    height: 0.52rem;
+    top:50%;
+    left:50%;
+    transform: translateX(-50%) translateY(-50%) rotate(45deg);
+    background-color: #eee;
+    pointer-events: none;
+}
+
+.monika-toradius {
+    position: relative;
+    width:1rem;
+    height: 1rem;
+    border:2px solid #222;
+    transition: border-radius 1s 1s, transform 1s;
+    border-radius:0%;
+}
+
+.monika-toradius:hover {
+   border-radius:100%;
+}
+
+.monika-square:hover {
+    height: 0.76rem;
+    width:0.76rem;
+}
+
+
+
 
 /* ------------------ */
 

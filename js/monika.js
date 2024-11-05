@@ -145,11 +145,42 @@
 
 const monika = {
     //指令集
-    order: ["m-content", "m-value"],
+    //monika不支持在运行时动态删除作用在元素上的指令，但是可以动态添加和修改。
+    //m-content: 给元素的文本节点做数据绑定
+    //m-value: 给元素的value属性值做数据绑定
+    //m-ignore: 在渲染时忽略元素、子元素
+    order: ["m-content", "m-value", "m-ignore"],
 
     //虚拟数据，可以实时更新
     //只有第一次渲染页面才会访问真数据，之后再次渲染(更新)页面都访问虚拟数据
     data: {},
+
+    //监听指令、文本、value值的变化以实时更新虚拟数据
+    observe: (element) => {
+        const flag = false; //停止监听
+        const observer = new MutationObserver((mutationsList) => {
+            for (let mutation of mutationsList) {
+                if (mutation.type === 'childList') {
+                    //当有m-content指令的节点的文本内容变化时，更新绑定的虚拟数据和页面
+                    monika.$set(mutation.target.getAttribute(monika.order[0]), mutation.target.textContent);
+                }
+
+                if (mutation.type === 'attributes') {
+                    //当m-content和m-value的值改变时，更新对应的textContent和value值   
+                    if (mutation.attributeName === monika.order[0]) {
+                        const res = monika.$get(mutation.target.getAttribute(monika.order[0]));
+                        mutation.target.textContent = (typeof res === 'undefined') ? mutation.target.getAttribute(monika.order[0]) : res;
+                    }
+                    if (mutation.attributeName === monika.order[1]) {
+                        const res = monika.$get(mutation.target.getAttribute(monika.order[1]));
+                        mutation.target.value = (typeof res === 'undefined') ? mutation.target.getAttribute(monika.order[1]) : res;
+                    }
+                }
+            }
+        });
+        observer.observe(element, { subtree: true, childList: true, attributes: true, attributeOldValue: true, attributeFilter: [monika.order[0], monika.order[1]] });
+    },
+
 
     //从指定的JSON文件渲染页面数据
     renderByData: async (data) => {
@@ -199,6 +230,21 @@ const monika = {
         const data = monika.data;
         //处理元素节点
         if (node.nodeType === Node.ELEMENT_NODE) {
+            //如果有m-ignore属性,则忽略该节点的渲染
+            //根据m-ignore的值，视情况判断是否渲染该节点的子节点，默认不渲染
+            if (node.hasAttribute(monika.order[2])) {
+                //如果指定了m-ignore的值为local,则渲染子节点
+                if (node.getAttribute(monika.order[2]) === 'local') {
+                    // 递归遍历子节点
+                    for (let child of node.childNodes) {
+                        monika.traverse(child);
+                    }
+                    return ;
+                }
+                //默认不渲染子节点
+                else return ;
+            }
+
             //渲染列表
             if (node.id[0] === '#') {
                 const container = document.getElementById(node.id);  //获得项目容器
@@ -221,6 +267,7 @@ const monika = {
                 const attr = node.attributes[i];
                 //处理指令m-content
                 if (attr.name === monika.order[0]) {
+
                     const regex = /@(#?\w+(?:\.#?\w+)*)/g;
                     let match_order = '';
                     let res_order = '';
@@ -236,6 +283,8 @@ const monika = {
 
                     if (node.textContent !== res_order)
                         node.textContent = res_order;
+                    //监听文本内容变化
+                    monika.observe(node);
 
                     continue;
                 }
@@ -260,6 +309,7 @@ const monika = {
 
                     //为该节点添加监视器,value改变时立刻根据m-value的地址更新data的值,然后再次渲染页面,实现数据同步
                     node.addEventListener('input', handleInput);
+                    monika.observe(node);
                     continue;
                 }
 
@@ -302,13 +352,9 @@ const monika = {
 
         //监听input事件的回调函数
         function handleInput(event) {
-            const keyPath = event.target.getAttribute('m-value');
+            const keyPath = event.target.getAttribute(monika.order[1]);
             //更新data中对应的数据
             monika.$set(keyPath, event.target.value);
-            monika.data = data;
-            //再次渲染页面,更新其它组件的value值
-            // monika.updatePage(document.body, event.target.value, event.target.getAttribute('m-value'));
-            monika.$set(event.target.getAttribute('m-value'), event.target.value);
         }
     },
 
@@ -434,6 +480,48 @@ const monika = {
         }
     },
 
+    //面向切面编程
+    before: (object, origin, before) => {
+        for (let fun in object) {
+            if (fun === origin) {
+                const _fun = object[fun];
+                object[fun] = function(... args){
+                    before();
+                    return _fun.call(object, ... args);
+                };
+                return _fun;
+            }
+        }
+    },
+
+    after: (object, origin, after) => {
+        for (let fun in object) {
+            if (fun === origin) {
+                const _fun = object[fun];
+                object[fun] = function(... args){
+                    const res =  _fun.call(object, ... args);
+                    after();
+                    return res;
+                };
+                return _fun;
+            }
+        }
+    },
+
+    before_and_after: (object, origin, before, after) => {
+        for (let fun in object) {
+            if (fun === origin) {
+                const _fun = object[fun];
+                object[fun] = function(... args){
+                    before();
+                    const res =  _fun.call(object, ... args);
+                    after();
+                    return res;
+                };
+                return _fun;
+            }
+        }
+    },
 
     //简化的ID选择器
     $: (id) => {
@@ -450,7 +538,8 @@ const monika = {
     //不能通过修改该函数的返回值来修改monika.data
     $get: (keyPath) => {
         if (keyPath[0] === '@') keyPath = keyPath.slice(1);
-        return keyPath.split('.').reduce((acc, key) => acc && acc[key], monika.data);
+        const res = keyPath.split('.').reduce((acc, key) => acc && acc[key], monika.data);
+        return res;
     },
 
     //根据monika的语法keyPath = @key1.key2.key3...设置数据，并且实时更新页面
@@ -464,13 +553,43 @@ const monika = {
         }
         const keys = keyPath.split('.');
         if (keys.length === 1) {
+            if (typeof data[keys[0]] === 'underfined') return;
             data[keys[0]] = value;
             return;
         }
         const [firstKey, ...remainingKeys] = keys;
         if (!data[firstKey]) data[firstKey] = '';
         monika.$set(remainingKeys.join('.'), value, data[firstKey], false);
-    }
+    },
+
+    //根据id查找元素，如果没有m-content属性就添加该属性，并设置值为content；如果有，就改变m-content属性值
+    $setContent: (id, content) => {
+        const element = monika.$(id);
+        if (!element.hasOwnProperty(monika.order[0])) {
+            //如果没有指令，就要在添加该指令的同时，添加一个observer
+            monika.observe(element);
+        }
+        element.setAttribute(monika.order[0], content);
+    },
+
+    //根据id查找元素，如果没有m-value属性就添加该属性，并设置值为；如果有，就改变m-value属性值
+    $setValue: (id, value) => {
+        const element = monika.$(id);
+        if (!element.hasOwnProperty(monika.order[1])) {
+            //如果没有指令，就要在添加该指令的同时，添加一个observer,同时,添加一个listener监听value变化
+            monika.observe(element);
+            //为该节点添加监视器,value改变时立刻根据m-value的地址更新data的值,然后再次渲染页面,实现数据同步
+            element.addEventListener('input', handleInput);
+        }
+
+        element.setAttribute(monika.order[1], value);
+        //监听input事件的回调函数
+        function handleInput(event) {
+            const keyPath = event.target.getAttribute(monika.order[1]);
+            //更新data中对应的数据
+            monika.$set(keyPath, event.target.value);
+        }
+    },
 };
 
 export default monika;
