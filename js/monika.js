@@ -458,6 +458,7 @@ const monika = {
         return 1;
     },
 
+
     //更新页面，只替换特定的占位符(路径keyPath相同)
     updatePage: (node, newValue, keyPath) => {
         //更新属性值
@@ -522,6 +523,7 @@ const monika = {
             }
         }
     },
+
 
     //简化的ID选择器
     $: (id) => {
