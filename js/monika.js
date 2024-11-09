@@ -160,11 +160,6 @@ const monika = {
         const flag = false; //停止监听
         const observer = new MutationObserver((mutationsList) => {
             for (let mutation of mutationsList) {
-                if (mutation.type === 'childList') {
-                    //当有m-content指令的节点的文本内容变化时，更新绑定的虚拟数据和页面
-                    monika.$set(mutation.target.getAttribute(monika.order[0]), mutation.target.textContent);
-                }
-
                 if (mutation.type === 'attributes') {
                     //当m-content和m-value的值改变时，更新对应的textContent和value值   
                     if (mutation.attributeName === monika.order[0]) {
@@ -369,49 +364,37 @@ const monika = {
                 const attr = node.attributes[i];
                 //处理指令m-content
                 if (attr.name === monika.order[0]) {
-                    const regex = /@(#?\w+(?:\.#?\w+)*)/g;
+                    const regex = /@(#\w+(?:\.#?\w+)*)/g;
                     let match_order = '';
                     let res_order = '';
                     let lastIndex_order = 0;
                     while ((match_order = regex.exec(attr.value)) !== null) {
-                        const value = monika.$get(match_order[1] + pos);
+                        const value = match_order[0] + pos;
                         res_order += attr.value.slice(lastIndex_order, match_order.index);
                         res_order += value;
                         lastIndex_order = match_order.index + match_order[0].length;
 
                     }
                     res_order += attr.value.slice(lastIndex_order);
-
-
-                    if (node.textContent !== res_order)
-                        node.textContent = res_order;
-                    node.attributes[i].value += pos;
-
+                    node.attributes[i].value = (node.attributes[i].value != res_order) ? res_order : node.attributes[i].value;
                     continue;
                 }
 
                 //处理指令m-value
                 if (attr.name === monika.order[1]) {
-
-                    const regex = /@(#?\w+(?:\.#?\w+)*)/g;
+                    const regex = /@(#\w+(?:\.#?\w+)*)/g;
                     let match_order = '';
                     let res_order = '';
                     let lastIndex_order = 0;
                     while ((match_order = regex.exec(attr.value)) !== null) {
-                        const value = monika.$get(match_order[1] + pos);
+                        const value = match_order[0] + pos;
                         res_order += attr.value.slice(lastIndex_order, match_order.index);
                         res_order += value;
                         lastIndex_order = match_order.index + match_order[0].length;
 
                     }
                     res_order += attr.value.slice(lastIndex_order);
-                    if (node.value !== res_order)
-                        node.value = res_order;
-
-                    //为该节点添加监视器,value改变时立刻根据m-value的地址更新data的值,然后再次渲染页面,实现数据同步
-                    node.addEventListener('input', handleInput);
-
-                    node.attributes[i].value += pos;
+                    node.attributes[i].value = (node.attributes[i].value != res_order) ? res_order : node.attributes[i].value;
                     continue;
                 }
 

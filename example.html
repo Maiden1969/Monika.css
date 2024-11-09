@@ -9,33 +9,20 @@
 </head>
 
 <body>
-    <!-- <div id="#list" class="monika-card-container">
+    <div id="#list" class="monika-card-container">
         <div class="monika-card">
             <b>@#list.title.title</b>
-            <span style="font-style: italic;" m-content="@#list.summary.summary"></span>
+            <span style="font-style: italic;" m-content="@input"></span>
             <a href=@#list.link.link target="_blank" class="monika-btn-arrow-right"></a>
         </div>
     </div>
 
-    <input id='input' m-value="这就是@input" type="text" class="monika-input">
-    <input id='input2' type="text" m-value="@input" class="monika-input">
-    <div style="display: flex; flex-direction: row;">
-        <b>这里是</b><b id="test" m-content="@input"></b>
+    <div id="#input">
+        <input type="text" id="@#input.id.id" m-value="@input">
     </div>
-    <div m-content="@text.text1" class="monika-highlight"></div>
-    <div id="change" m-content="@single">test1</div> -->
+    
 
 
-    <div style="
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    gap:30px;">
-        <input id="test1" type="text" style="order: 2; transition: all .5s; align-self: flex-end;" value="2">
-        <input id='test2' type="text" style="order:1; transition: all .5s;" value="1">
-    </div>
 
 </body>
 
@@ -44,12 +31,6 @@
     import monika from '/js/monika.js';
     const { render, $, $$, $get, $set, $setContent, $setValue, observe, before, after, before_and_after } = monika;  //解构赋值
     await render();
-
-    // const input1 = $('test1');
-    // const input2 = $('test2');
-    // setTimeout(()=>{
-
-    // },3000);
 </script>
 
 </html>
